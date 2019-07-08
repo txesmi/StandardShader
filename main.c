@@ -4,7 +4,7 @@
 MATERIAL * mtl_nextgen =
 {
 	effect    = "fx_default.fx";
-	technique = "std_normalmapped";
+	technique = "std_default";
 	flags = AUTORELOAD | TANGENT;
 
 	ambient_red   = 100;

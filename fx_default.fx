@@ -14,27 +14,27 @@ sampler smpNormalmap = sampler_state
 
 struct vtx_in_t // vertexshader eingabe
 {
-	float4 pos : POSITION; // position des vertex in modellkoordinaten (exakt wie in MED (nur yz getauscht))
-	float3 normal : NORMAL; // oberflächennormale des vertex
-	float2 uv : TEXCOORD0; // texturkoordinate primäres skinset
-	float2 uv2 : TEXCOORD1; // texturkoordinate lightmapped skinset
-	float3 tangent : TEXCOORD2;
+	float4 pos     : POSITION;  // vertex position in model space
+	float3 normal  : NORMAL;    // surface normal in model space
+	float2 uv      : TEXCOORD0; // primary uv coordinates (albedo)
+	float2 uv2     : TEXCOORD1; // second uv coordinates (lightmap)
+	float3 tangent : TEXCOORD2; // tangent in model space
 };
 
 struct vtx_out_t // vertexshader ausgabe
 {
-	float4 pos : POSITION;
-	float3 normal : TEXCOORD0;
-	float2 uv : TEXCOORD1;
-	float3 wpos : TEXCOORD2;
-	float3 tangent : TEXCOORD3;
-	float2 uv2 : TEXCOORD4;
-	float  fog : FOG;
+	float4 pos     : POSITION;  // position in screen coordinates
+	float3 normal  : TEXCOORD0; // normal in world space
+	float2 uv      : TEXCOORD1; // uv coordinates
+	float3 wpos    : TEXCOORD2; // world position
+	float3 tangent : TEXCOORD3; // tangent in world space
+	float2 uv2     : TEXCOORD4; // second uv coordinates (lightmap)
+	float  fog     : FOG;       // fog strength
 };
 
 struct pixel_out_t
 {
-	float4 color : COLOR0;
+	float4 color : COLOR0; // primary screen color
 };
 
 float4x4 matWorld;
@@ -44,7 +44,8 @@ float4 vecTime;
 float4 vecSunDir;
 float4 vecViewDir;
 
-/*********************************************************************************/
+/******************************************************************************/
+// vertex shader:
 
 vtx_out_t vs(vtx_in_t _in)
 {
@@ -66,7 +67,8 @@ vtx_out_t vs(vtx_in_t _in)
     return _out;
 }
 
-/*********************************************************************************/
+/******************************************************************************/
+// pixel shader:
 
 float4 vecAmbient;
 float4 vecDiffuse;
@@ -82,22 +84,42 @@ float4 vecColor;
 
 float4 do_fog(vtx_out_t vtx, float4 color)
 {
-    return lerp(color, vecFogColor, vecFogColor.w * saturate((vtx.fog - vecFog.x) * vecFog.z));
+	float strength = vecFogColor.w * saturate((vtx.fog - vecFog.x) * vecFog.z);
+    return lerp(
+		color,
+		vecFogColor, 
+		strength);
 }
 
 pixel_out_t do_lighting(vtx_out_t vtx, float3 normal, float4 lightmap)
 {
     float3 lighting = fAmbient;
 
+	// ambient term
     lighting += vecAmbient.rgb;
+
+	// repeat this block for multiple dynamic lights
+	// {
+
+	// diffuse term
     lighting += vecDiffuse.rgb * saturate(-dot(vecSunDir.xyz, normal));
 
+	// specular term
     float3 refl = reflect(vecSunDir, normal);
-
     lighting += vecSpecular.rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
 
+	// }
+
+	// surface albedo
+	const float4 albedo = tex2D(smpSurface, vtx.uv);
+
+	// lighted surface
+	float4 surfaceColor = vecEmissive + float4(lighting, 1) * lightmap * albedo;
+
+	// determine our output color
+	// by applying fog to the surface color.
     pixel_out_t pixel;
-    pixel.color = do_fog(vtx, vecEmissive + float4(1.0 * lighting, 1) * lightmap * tex2D(smpSurface, vtx.uv));
+    pixel.color = do_fog(vtx, surfaceColor);
     return pixel;
 }
 

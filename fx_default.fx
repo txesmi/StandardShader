@@ -1,16 +1,13 @@
 Texture entSkin1;
 Texture entSkin2;
+Texture entSkin3;
 
-sampler smpSurface = sampler_state
-{
-	Texture = <entSkin1>;
-	MipFilter = Linear;
-};
-sampler smpNormalmap = sampler_state
-{
-	Texture = <entSkin2>;
-	MipFilter = Linear;
-};
+// primary surface color
+sampler smpAlbedo = sampler_state { Texture = <entSkin1>; MipFilter = Linear; };
+
+// multi-purpose second and third skin sampler
+sampler smpSkin2  = sampler_state { Texture = <entSkin2>; MipFilter = Linear; };
+sampler smpSkin3  = sampler_state { Texture = <entSkin3>; MipFilter = Linear; };
 
 struct vtx_in_t // vertexshader eingabe
 {
@@ -68,7 +65,7 @@ vtx_out_t vs(vtx_in_t _in)
 }
 
 /******************************************************************************/
-// pixel shader:
+// pixel shader library:
 
 float4 vecAmbient;
 float4 vecDiffuse;
@@ -111,7 +108,7 @@ pixel_out_t do_lighting(vtx_out_t vtx, float3 normal, float4 lightmap)
 	// }
 
 	// surface albedo
-	const float4 albedo = tex2D(smpSurface, vtx.uv);
+	const float4 albedo = tex2D(smpAlbedo, vtx.uv);
 
 	// lighted surface
 	float4 surfaceColor = vecEmissive + float4(lighting, 1) * lightmap * albedo;
@@ -123,7 +120,7 @@ pixel_out_t do_lighting(vtx_out_t vtx, float3 normal, float4 lightmap)
     return pixel;
 }
 
-float3 do_normal(vtx_out_t vtx)
+float3 do_normal(vtx_out_t vtx, sampler smpNormalmap)
 {
     float3x3 trafo;
     trafo[0] = normalize(vtx.tangent);
@@ -135,29 +132,36 @@ float3 do_normal(vtx_out_t vtx)
     return normalize(mul(normal, trafo));
 }
 
-float4 do_lightmap(vtx_out_t vtx)
+float4 do_lightmap(vtx_out_t vtx, sampler smpLightmap)
 {
-    return tex2D(smpNormalmap, vtx.uv2);
+    return tex2D(smpLightmap, vtx.uv2);
 }
 
+/******************************************************************************/
+// pixel shaders:
+
+// default shading, no normalmap, no lightmap
 pixel_out_t ps_default(vtx_out_t vtx)
 {
     return do_lighting(vtx, vtx.normal, float4(1,1,1,1));
 }
 
+// only lightmapping
 pixel_out_t ps_lightmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, vtx.normal, do_lightmap(vtx));
+    return do_lighting(vtx, vtx.normal, do_lightmap(vtx, smpSkin2));
 }
 
+// only normalmapping
 pixel_out_t ps_normalmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, do_normal(vtx), float4(1,1,1,1));
+    return do_lighting(vtx, do_normal(vtx, smpSkin2), float4(1,1,1,1));
 }
 
+// everything combined
 pixel_out_t ps_normalmapped_lightmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, do_normal(vtx), do_lightmap(vtx));
+    return do_lighting(vtx, do_normal(vtx, smpSkin3), do_lightmap(vtx, smpSkin2));
 }
 
 

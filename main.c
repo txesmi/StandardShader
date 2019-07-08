@@ -4,7 +4,7 @@
 MATERIAL * mtl_nextgen =
 {
 	effect    = "fx_default.fx";
-	technique = "std_default";
+	technique = "std_lightmapped";
 	flags = AUTORELOAD | TANGENT;
 
 	ambient_red   = 100;
@@ -28,9 +28,15 @@ MATERIAL * mtl_nextgen =
 
 function main()
 {
-	level_load(NULL);
+	level_load("scene/scene.wmb");
 
 	ent_create("cylinder.mdl", vector(64, 16, 0), NULL);
 	you = ent_create("cylinder.mdl", vector(64, -16, 4), NULL);
 	you.material = mtl_nextgen;
+
+	while(!key_space)
+		wait(1);
+
+	mtl_shaded.technique = "std_lightmapped";
+	effect_load(mtl_shaded, "fx_default.fx");
 }

@@ -1,2 +1,7 @@
 *.bak
 acklog.txt
+*.$$M
+*.$$p
+*.$$w
+*.raw
+*.wed

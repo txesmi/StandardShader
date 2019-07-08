@@ -47,4 +47,5 @@ MATERIAL * mtl_std_normalmapped_lightmapped =
 ```
 
 ## Known Bugs
-- `std_normalmapped_lightmapped` does not work right now
+- `std_lightmapped` is not yet right
+- `std_normalmapped_lightmapped` is not yet right

@@ -1,10 +1,12 @@
 #include <acknex.h>
 #include <default.c>
 
+#define PRAGMA_PATH "%EXE_DIR%\\templates\\models"
+
 MATERIAL * mtl_nextgen =
 {
 	effect    = "fx_default.fx";
-	technique = "std_lightmapped";
+	technique = "ps_normalmapped";
 	flags = AUTORELOAD | TANGENT;
 
 	ambient_red   = 100;
@@ -30,13 +32,17 @@ function main()
 {
 	level_load("scene/scene.wmb");
 
-	ent_create("cylinder.mdl", vector(64, 16, 0), NULL);
-	you = ent_create("cylinder.mdl", vector(64, -16, 4), NULL);
-	you.material = mtl_nextgen;
+//	ENTITY *_entCylinder = ent_create("cylinder.mdl", vector(64, 16, 0), NULL);
+	ENTITY *_entBuggy = ent_create("buggy.mdl", vector(64, -16, -70), NULL);
+//	_entBuggy.material = mtl_nextgen;
 
 	while(!key_space)
 		wait(1);
 
 	mtl_shaded.technique = "std_lightmapped";
 	effect_load(mtl_shaded, "fx_default.fx");
+	
+	mtl_model.technique = "std_default";
+	effect_load(mtl_model, "fx_default.fx");
+	
 }

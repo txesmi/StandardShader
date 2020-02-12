@@ -79,62 +79,98 @@ float4 vecFogColor;
 
 float4 vecColor;
 
+float iLights;
+float4 vecLightPos[8];
+float4 vecLightColor[8];
+
 float4 do_fog(vtx_out_t vtx, float4 color)
 {
 	float strength = vecFogColor.w * saturate((vtx.fog - vecFog.x) * vecFog.z);
-    return lerp(
-		color,
-		vecFogColor, 
-		strength);
+	return lerp(color, vecFogColor, strength);
 }
 
-pixel_out_t do_lighting(vtx_out_t vtx, float3 normal, float4 lightmap)
+float3 do_dyn_lights(vtx_out_t vtx, float3 normal) {
+	float3 lighting = 0;
+	float light = 0;
+	for(; light < iLights; light += 1)
+	{
+		// light ray
+		float3 ray = normalize(vtx.wpos - vecLightPos[light].xyz);
+		
+		// diffuse term
+		lighting += vecLightColor[light].rgb * saturate(-dot(ray.xyz, normal));
+		
+		// specular term
+		float3 refl = reflect(ray, normal);
+		lighting += vecSpecular.rgb * vecLightColor[light].rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
+	}
+	return lighting;
+}
+
+pixel_out_t do_lighting(vtx_out_t vtx, float3 normal)
 {
-    float3 lighting = fAmbient;
-
 	// ambient term
-    lighting += vecAmbient.rgb;
-
-	// repeat this block for multiple dynamic lights
-	// {
-
+	float3 lighting = vecAmbient.rgb;
+	
 	// diffuse term
-    lighting += vecDiffuse.rgb * saturate(-dot(vecSunDir.xyz, normal));
-
+	lighting += vecDiffuse.rgb * saturate(-dot(vecSunDir.xyz, normal));
+	
 	// specular term
-    float3 refl = reflect(vecSunDir, normal);
-    lighting += vecSpecular.rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
-
-	// }
-
+	float3 refl = reflect(vecSunDir, normal);
+	lighting += vecSpecular.rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
+	
+	// multiple dynamic lights
+	lighting += do_dyn_lights(vtx, normal);
+	
 	// surface albedo
 	const float4 albedo = tex2D(smpAlbedo, vtx.uv);
-
+	
 	// lighted surface
-	float4 surfaceColor = vecEmissive + float4(lighting, 1) * lightmap * albedo;
-
+	float4 surfaceColor = vecEmissive + float4(lighting, 1) * albedo;
+	
 	// determine our output color
 	// by applying fog to the surface color.
-    pixel_out_t pixel;
-    pixel.color = do_fog(vtx, surfaceColor);
-    return pixel;
+	pixel_out_t pixel;
+	pixel.color = do_fog(vtx, surfaceColor);
+	return pixel;
+}
+
+pixel_out_t do_lighting_lightmapped(vtx_out_t vtx, float3 normal, float4 lightmap)
+{
+	// ambient term
+	float3 lighting = lightmap.rgb;
+	
+	// multiple dynamic lights
+	lighting += do_dyn_lights(vtx, normal);
+	
+	// surface albedo
+	const float4 albedo = tex2D(smpAlbedo, vtx.uv);
+	
+	// lighted surface
+	float4 surfaceColor = vecEmissive + float4(lighting, 1) * albedo;
+	
+	// determine our output color
+	// by applying fog to the surface color.
+	pixel_out_t pixel;
+	pixel.color = do_fog(vtx, surfaceColor);
+	return pixel;
 }
 
 float3 do_normal(vtx_out_t vtx, sampler smpNormalmap)
 {
-    float3x3 trafo;
-    trafo[0] = normalize(vtx.tangent);
-    trafo[1] = normalize(cross(vtx.tangent, vtx.normal));
-    trafo[2] = normalize(vtx.normal);
-
-    float3 normal = normalize(tex2D(smpNormalmap, vtx.uv).xyz - 0.5);
-
-    return normalize(mul(normal, trafo));
+	float3x3 trafo;
+	trafo[0] = normalize(vtx.tangent);
+	trafo[1] = normalize(cross(vtx.tangent, vtx.normal));
+	trafo[2] = normalize(vtx.normal);
+	
+	float3 normal = normalize(tex2D(smpNormalmap, vtx.uv).xyz - 0.5);
+	
+	return normalize(mul(normal, trafo));
 }
 
 float4 do_lightmap(vtx_out_t vtx, sampler smpLightmap)
 {
-    return tex2D(smpLightmap, vtx.uv2);
+	return tex2D(smpLightmap, vtx.uv2);
 }
 
 /******************************************************************************/
@@ -143,25 +179,25 @@ float4 do_lightmap(vtx_out_t vtx, sampler smpLightmap)
 // default shading, no normalmap, no lightmap
 pixel_out_t ps_default(vtx_out_t vtx)
 {
-    return do_lighting(vtx, vtx.normal, float4(1,1,1,1));
+	return do_lighting(vtx, vtx.normal);
 }
 
 // only lightmapping
 pixel_out_t ps_lightmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, vtx.normal, do_lightmap(vtx, smpSkin2));
+	return do_lighting_lightmapped(vtx, vtx.normal, do_lightmap(vtx, smpSkin2));
 }
 
 // only normalmapping
 pixel_out_t ps_normalmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, do_normal(vtx, smpSkin2), float4(1,1,1,1));
+	return do_lighting(vtx, do_normal(vtx, smpSkin2));
 }
 
 // everything combined
 pixel_out_t ps_normalmapped_lightmapped(vtx_out_t vtx)
 {
-    return do_lighting(vtx, do_normal(vtx, smpSkin3), do_lightmap(vtx, smpSkin2));
+	return do_lighting_lightmapped(vtx, do_normal(vtx, smpSkin3), do_lightmap(vtx, smpSkin2));
 }
 
 

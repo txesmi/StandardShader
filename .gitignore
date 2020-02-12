@@ -5,3 +5,5 @@ acklog.txt
 *.$$w
 *.raw
 *.wed
+*.vs
+*.git

@@ -1,3 +1,7 @@
+
+/******************************************************************************/
+// textures
+
 Texture entSkin1;
 Texture entSkin2;
 Texture entSkin3;
@@ -8,6 +12,9 @@ sampler smpAlbedo = sampler_state { Texture = <entSkin1>; MipFilter = Linear; };
 // multi-purpose second and third skin sampler
 sampler smpSkin2  = sampler_state { Texture = <entSkin2>; MipFilter = Linear; };
 sampler smpSkin3  = sampler_state { Texture = <entSkin3>; MipFilter = Linear; };
+
+/******************************************************************************/
+// data structs
 
 struct vtx_in_t // vertexshader eingabe
 {
@@ -34,12 +41,36 @@ struct pixel_out_t
 	float4 color : COLOR0; // primary screen color
 };
 
+/******************************************************************************/
+// static table
+
 float4x4 matWorld;
 float4x4 matWorldViewProj;
 
-float4 vecTime;
+//float4 vecTime;
+float4 vecAmbientColor;
 float4 vecSunDir;
+float4 vecSunColor;
 float4 vecViewDir;
+
+float4 vecAmbient;
+float4 vecDiffuse;
+float4 vecSpecular;
+float4 vecEmissive;
+float fPower;
+float fAmbient;
+float fAlbedo;
+float fAlpha;
+
+//float4 vecColor;
+float4 vecLight;
+
+float4 vecFog;
+float4 vecFogColor;
+
+float iLights;
+float4 vecLightPos[8];
+float4 vecLightColor[8];
 
 /******************************************************************************/
 // vertex shader:
@@ -67,92 +98,59 @@ vtx_out_t vs(vtx_in_t _in)
 /******************************************************************************/
 // pixel shader library:
 
-float4 vecAmbient;
-float4 vecDiffuse;
-float4 vecSpecular;
-float4 vecEmissive;
-float fPower;
-float fAmbient;
-
-float4 vecFog;
-float4 vecFogColor;
-
-float4 vecColor;
-
-float iLights;
-float4 vecLightPos[8];
-float4 vecLightColor[8];
-
-float4 do_fog(vtx_out_t vtx, float4 color)
+pixel_out_t do_lighting(vtx_out_t vtx, float3 normal, float4 lightmap, float sunActive)
 {
-	float strength = vecFogColor.w * saturate((vtx.fog - vecFog.x) * vecFog.z);
-	return lerp(color, vecFogColor, strength);
-}
-
-float3 do_dyn_lights(vtx_out_t vtx, float3 normal) {
-	float3 lighting = 0;
+	// ambient term
+	float3 lighting = vecAmbientColor.rgb + lightmap.rgb;
+	
+	// ambient factor
+	lighting += lightmap.rgb * fAmbient;
+	
+	// sun diffuse
+	lighting += vecDiffuse.rgb * vecSunColor.rgb * saturate(-dot(vecSunDir, normal)) * sunActive;
+	
+	// sun specular
+	float3 refl = reflect(vecSunDir, normal);
+	lighting += vecSpecular.rgb * vecSunColor.rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower) * sunActive;
+	
+	// multiple dynamic lights
 	float light = 0;
-	for(; light < iLights; light += 1)
+	float lastLight = iLights - vecSunColor.w;
+	for(; light < lastLight; light += 1.0)
 	{
 		// light ray
-		float3 ray = normalize(vtx.wpos - vecLightPos[light].xyz);
+		float3 ray = vtx.wpos - vecLightPos[light].xyz;
+		float dist = length(ray);
+		ray /= dist; // normalize the light ray
+		
+		// distance factor
+		float strength = saturate(1.0 - dist / vecLightPos[light].w);
 		
 		// diffuse term
-		lighting += vecLightColor[light].rgb * saturate(-dot(ray.xyz, normal));
+		lighting += vecLightColor[light].rgb * saturate(-dot(ray, normal)) * strength;
 		
 		// specular term
 		float3 refl = reflect(ray, normal);
-		lighting += vecSpecular.rgb * vecLightColor[light].rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
+		lighting += vecLightColor[light].rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower) * strength;
 	}
-	return lighting;
-}
-
-pixel_out_t do_lighting(vtx_out_t vtx, float3 normal)
-{
-	// ambient term
-	float3 lighting = vecAmbient.rgb;
-	
-	// diffuse term
-	lighting += vecDiffuse.rgb * saturate(-dot(vecSunDir.xyz, normal));
-	
-	// specular term
-	float3 refl = reflect(vecSunDir, normal);
-	lighting += vecSpecular.rgb * pow(saturate(-dot(refl, vecViewDir.xyz)), fPower);
-	
-	// multiple dynamic lights
-	lighting += do_dyn_lights(vtx, normal);
 	
 	// surface albedo
-	const float4 albedo = tex2D(smpAlbedo, vtx.uv);
+	float4 albedo = tex2D(smpAlbedo, vtx.uv);
+	albedo.rgb *= 1.0 + fAlbedo;
+	albedo.rgb *= vecLight.rgb;
+	albedo.a *= fAlpha;
 	
 	// lighted surface
-	float4 surfaceColor = vecEmissive + float4(lighting, 1) * albedo;
+	float4 surfaceColor = float4(vecEmissive.rgb, 0) + float4(lighting, 1.0) * albedo;
+	
+	// fog
+	float strengthFog = vecFogColor.w * saturate((vtx.fog - vecFog.x) * vecFog.z);
+	surfaceColor.rgb = lerp(surfaceColor.rgb, vecFogColor.rgb, strengthFog);
 	
 	// determine our output color
 	// by applying fog to the surface color.
 	pixel_out_t pixel;
-	pixel.color = do_fog(vtx, surfaceColor);
-	return pixel;
-}
-
-pixel_out_t do_lighting_lightmapped(vtx_out_t vtx, float3 normal, float4 lightmap)
-{
-	// ambient term
-	float3 lighting = lightmap.rgb;
-	
-	// multiple dynamic lights
-	lighting += do_dyn_lights(vtx, normal);
-	
-	// surface albedo
-	const float4 albedo = tex2D(smpAlbedo, vtx.uv);
-	
-	// lighted surface
-	float4 surfaceColor = vecEmissive + float4(lighting, 1) * albedo;
-	
-	// determine our output color
-	// by applying fog to the surface color.
-	pixel_out_t pixel;
-	pixel.color = do_fog(vtx, surfaceColor);
+	pixel.color = surfaceColor;
 	return pixel;
 }
 
@@ -165,7 +163,7 @@ float3 do_normal(vtx_out_t vtx, sampler smpNormalmap)
 	
 	float3 normal = normalize(tex2D(smpNormalmap, vtx.uv).xyz - 0.5);
 	
-	return normalize(mul(normal, trafo));
+	return mul(normal, trafo);
 }
 
 float4 do_lightmap(vtx_out_t vtx, sampler smpLightmap)
@@ -179,27 +177,29 @@ float4 do_lightmap(vtx_out_t vtx, sampler smpLightmap)
 // default shading, no normalmap, no lightmap
 pixel_out_t ps_default(vtx_out_t vtx)
 {
-	return do_lighting(vtx, vtx.normal);
+	return do_lighting(vtx, vtx.normal, vecAmbient + vecLight, vecSunColor.w);
 }
 
 // only lightmapping
 pixel_out_t ps_lightmapped(vtx_out_t vtx)
 {
-	return do_lighting_lightmapped(vtx, vtx.normal, do_lightmap(vtx, smpSkin2));
+	return do_lighting(vtx, vtx.normal, do_lightmap(vtx, smpSkin2), saturate(vecSunColor.w - 1.0));
 }
 
 // only normalmapping
 pixel_out_t ps_normalmapped(vtx_out_t vtx)
 {
-	return do_lighting(vtx, do_normal(vtx, smpSkin2));
+	return do_lighting(vtx, do_normal(vtx, smpSkin2), vecAmbient + vecLight, vecSunColor.w);
 }
 
 // everything combined
 pixel_out_t ps_normalmapped_lightmapped(vtx_out_t vtx)
 {
-	return do_lighting_lightmapped(vtx, do_normal(vtx, smpSkin3), do_lightmap(vtx, smpSkin2));
+	return do_lighting(vtx, do_normal(vtx, smpSkin3), do_lightmap(vtx, smpSkin2), saturate(vecSunColor.w - 1.0));
 }
 
+/******************************************************************************/
+// techniques:
 
 technique std_default
 {

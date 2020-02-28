@@ -104,7 +104,7 @@
 		
 		//enable: Enable brightness correction
 		//id:23
-//		#define _DFX_CONTRAST_BRIGHTNESS_
+		#define _DFX_CONTRAST_BRIGHTNESS_
 		
 		//entry: Contrast
 		//cntl: slider -100 100 1
@@ -215,7 +215,7 @@
 		//entry: albedo
 		//id:80
 		//cntl: slider -200 200 1
-		mtl_flat->albedo = 50;
+		mtl_flat->albedo = 0;
 		
 		// section: 
 		//-------------------------------------------
@@ -1091,7 +1091,7 @@
 		//entry: albedo
 		//id:380
 		//cntl: slider -200 200 1
-		mtl_unlit->albedo = 100;
+		mtl_unlit->albedo = 0;
 		
 		// section: 
 		//-------------------------------------------
@@ -1246,6 +1246,7 @@
 	}
 	
 #endif
+
 
 
 

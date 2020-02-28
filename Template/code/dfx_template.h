@@ -214,8 +214,8 @@
 		
 		//entry: albedo
 		//id:80
-		//cntl: slider -200 200 1
-		mtl_flat->albedo = 50;
+		//cntl: slider -100 100 1
+		mtl_flat->albedo = 0;
 		
 		// section: 
 		//-------------------------------------------
@@ -1090,8 +1090,8 @@
 		
 		//entry: albedo
 		//id:380
-		//cntl: slider -200 200 1
-		mtl_unlit->albedo = 100;
+		//cntl: slider -100 100 1
+		mtl_unlit->albedo = 0;
 		
 		// section: 
 		//-------------------------------------------

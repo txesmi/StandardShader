@@ -3,8 +3,8 @@
 HLSL Reimplementation of the Gamestudio Default Shading. With normal maps and per pixel lighting.
 
 Provides:
-- `dfx_default.h` with the liteC code of the template.
-- `dfx_default.fx` with the shader template.
+- `dfx_template.h` with the liteC code of the template.
+- `dfx_template.fx` with the shader template.
 
 ## Usage
 

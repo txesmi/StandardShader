@@ -1,5 +1,4 @@
 *.bak
-acklog.txt
 *.$$M
 *.$$p
 *.$$w
@@ -7,15 +6,4 @@ acklog.txt
 *.wed
 *.vs
 *.git
-/scene/alcantarilla.mdl
-/scene/alcantarilla.tga
-/scene/alcantarilla_n.tga
-/scene/barril.mdl
-/scene/plaster.tga
-/scene/plaster_n.tga
-/scene/madera_n.tga
-/scene/madera.tga
-/scene/concrete_n.tga
-/scene/concrete.tga
-/scene/chapa_n.tga
-/scene/chapa.tga
+acklog.txt

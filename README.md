@@ -2,50 +2,14 @@
 
 HLSL Reimplementation of the Gamestudio Default Shading. With normal maps and per pixel lighting.
 
-Provides `fx_default.fx` with the following techniques:
-- `std_default` (skin1=albedo)
-- `std_normalmapped` (skin1=albedo, skin2=normalmap)
-- `std_lightmapped` (skin1=albedo, skin2=lightmap)
-- `std_normalmapped_lightmapped` (skin1=albedo, skin2=lightmap,skin3=normalmap)
+Provides:
+- `dfx_default.h` with the liteC code of the template.
+- `dfx_default.fx` with the shader template.
 
 ## Usage
 
-```c
-// skin1: albedo
-MATERIAL * mtl_std_default = 
-{
-	effect    = "fx_default.fx";
-	technique = "std_default";
-}
+1. Copy the content of the 'Template' folder into the 'templates' folder in your 3DGS installation folder.
+2. Copy the content of the 'dfx_template.xml' file inside the 'GamestudioTemplate' tag into the 'templates.xml' file located at the 'templates' folder in your 3DGS installation folder.
+3. Add the template to your project by The Project Manager in WED.
+4. Have fun!
 
-// skin1: albedo
-// skin2: normalmap
-MATERIAL * mtl_std_normalmapped = 
-{
-	effect    = "fx_default.fx";
-	technique = "std_normalmapped";
-	flags = TANGENT;
-}
-
-// skin1: albedo
-// skin2: lightmap
-MATERIAL * mtl_std_lightmapped = 
-{
-	effect    = "fx_default.fx";
-	technique = "std_lightmapped";
-}
-
-// skin1: albedo
-// skin2: lightmap
-// skin3: normalmap
-MATERIAL * mtl_std_normalmapped_lightmapped = 
-{
-	effect    = "fx_default.fx";
-	technique = "std_normalmapped_lightmapped";
-	flags = TANGENT;
-}
-```
-
-## Known Bugs
-- `std_lightmapped` is not yet right
-- `std_normalmapped_lightmapped` is not yet right

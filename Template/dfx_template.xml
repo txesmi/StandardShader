@@ -1,0 +1,11 @@
+<Script
+	id=""
+	directory="code"
+	filename="dfx_template.h"
+	name="Default materials overwrite"
+	type="USER"
+	vers=" 0.0004"
+	date=" 200228">
+	<class>D3DFX</class>
+	<desc>Overwrite default materials by a set of pixel side shaded materials</desc>
+</Script>

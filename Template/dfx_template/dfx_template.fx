@@ -117,7 +117,7 @@ struct vtx_out_t {
 
 // pixel shader out data
 struct pixel_out_t { 
-	float4 color0  : COLOR0; // primary screen color
+	float4 color0     : COLOR0;    // primary screen color
 };
 
 /******************************************************************************/
@@ -175,6 +175,14 @@ float fAlpha;
 #ifdef _DFX_AMBIENT_
 	float4 vecAmbient;
 	float4 vecAmbientColor;
+#else
+	#ifdef _DFX_BLOCK_
+		#ifdef _DFX_LIGHTMAP_
+			#ifdef _DFX_PRV_
+				float4 vecAmbientColor;
+			#endif
+		#endif
+	#endif
 #endif
 
 #ifdef _DFX_EMISSIVE_
@@ -256,11 +264,7 @@ pixel_out_t ps(vtx_out_t vtx) {
 					diffuse = do_gamma(diffuse);
 				#endif
 				#ifdef _DFX_PRV_
-					#ifdef _DFX_AMBIENT_
-						diffuse *= (1.0 + (vecLight.r - vecAmbientColor.w) /** 2.56*/);
-					#else
-						diffuse *= vecLight.rgb;
-					#endif
+					diffuse *= (1.0 + (vecLight.r - vecAmbientColor.w) /** 2.56*/);
 				#endif
 			#else
 				diffuse = tex2D(smpLightmap, vtx.uv.xy).rgb;
@@ -287,14 +291,7 @@ pixel_out_t ps(vtx_out_t vtx) {
 						diffuse *= vecLight.rgb;
 					#endif
 				#else
-					float3 prvProp = 1;
-//					#ifdef _DFX_SUN_LIGHT_
-//						prvProp = vecSunColor.rgb;
-//						#ifdef _DFX_AMBIENT_
-//							prvProp += vecAmbientColor.rgb;
-//						#endif
-//					#endif
-					diffuse *= vecLight.rgb / prvProp;
+					diffuse *= vecLight.rgb;
 				#endif
 			#else
 				diffuse *= 0.8;
@@ -421,7 +418,11 @@ pixel_out_t ps(vtx_out_t vtx) {
 			difFactor = undo_gamma(difFactor);
 		#endif
 		pixel.color0.rgb *= saturate(difFactor);
-		pixel.color0.rgb += do_gamma(saturate(difFactor - 1.0));
+		difFactor = saturate(difFactor - 1.0);
+		#ifdef _DFX_GAMMA_
+			difFactor = do_gamma(difFactor);
+		#endif
+		pixel.color0.rgb += difFactor;
 		pixel.color0.rgb += pixel.color0.rgb * fAmbient;
 		
 		// specular
@@ -449,18 +450,12 @@ pixel_out_t ps(vtx_out_t vtx) {
 	#endif
 	
 	#ifdef _DFX_CONTRAST_BRIGHTNESS_
-		pixel.color0.rgb = (pixel.color0.rgb - 0.5) * (100.0 + contrast) / 100.0 + 0.5;
-		pixel.color0.rgb += brightness / 100.0;
+		contrast = (100.0 - contrast) / 100.0;
+		float3 finalColor = 2.0 * (-0.499 + saturate(pixel.color0.rgb) * 0.998);
+		finalColor = 0.5 + 0.5 * pow(finalColor, contrast) * sign(finalColor);
+		brightness = brightness / 100.0;
+		pixel.color0.rgb = brightness + finalColor * (1.0 - brightness);
 	#endif
-	
-//	#define AMB_COLOR          0.0
-//	#define AMB_PRV            1.0
-//	#define DIF_COLOR          2.0
-//	#define SPEC_COLOR         3.0
-//	#define SPEC_TERM          4.0
-//	#define WORLD_NORMALS      5.0
-//	#define TAN_NORMALS        6.0
-//	#define LIGHTMAP           7.0
 	
 	#ifdef _DFX_DEBUG_
 		pixel.color0.rgb = 0;

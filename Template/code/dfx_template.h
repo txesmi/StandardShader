@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------
 // STARTHEADER
 //
-// ver: 0.0005
+// ver: 0.0006
 // engineReq: 7.82
 // date: 200228
 //
@@ -109,12 +109,12 @@
 		//entry: Contrast
 		//cntl: slider -100 100 1
  		//id:22
-		float contrast = 40;
+		float contrast = 30;
 		
 		//entry: Brightness
 		//cntl: slider -100 100 1
  		//id:23
-		float brightness = 15;
+		float brightness = 5;
 	";
 	
 	//section:

@@ -12,19 +12,15 @@
 	Texture LightMap;
 	sampler smpLightmap  = sampler_state { Texture = <LightMap>; MipFilter = Linear; };
 	
-	#ifdef _DFX_NORMALMAP_
+#endif
+
+#ifdef _DFX_NORMALMAP_
+	#ifdef _DFX_BLOCK_
 		Texture entSkin3;
 		sampler smpNormalmap  = sampler_state { Texture = <entSkin3>; MipFilter = Linear; };
-	#endif
-#else
-	#ifdef _DFX_NORMALMAP_
-		#ifdef _DFX_BLOCK_
-			Texture entSkin3;
-			sampler smpNormalmap  = sampler_state { Texture = <entSkin3>; MipFilter = Linear; };
-		#else
-			Texture entSkin2;
-			sampler smpNormalmap  = sampler_state { Texture = <entSkin2>; MipFilter = Linear; };
-		#endif
+	#else
+		Texture entSkin2;
+		sampler smpNormalmap  = sampler_state { Texture = <entSkin2>; MipFilter = Linear; };
 	#endif
 #endif
 
@@ -124,7 +120,7 @@ struct pixel_out_t {
 // vertex shader
 
 float4x4 matWorldViewProj;
-#ifdef _DFX_DATA_NORMAL_
+#ifdef _DFX_DIFFUSE_
 	float4x4 matWorld;
 #endif
 
@@ -226,13 +222,15 @@ float fAlpha;
 	float4 vecLightDir[8];
 #endif
 
-float3 do_gamma(float3 color) {
-	return pow(color * 256.0, gamma);
-}
-
-float3 undo_gamma(float3 color) {
-	return pow(color, 1.0/gamma) / 256.0;
-}
+#ifdef _DFX_GAMMA_
+	float3 do_gamma(float3 color) {
+		return pow(color * 256.0, gamma);
+	}
+	
+	float3 undo_gamma(float3 color) {
+		return pow(color, 1.0/gamma) / 256.0;
+	}
+#endif
 
 pixel_out_t ps(vtx_out_t vtx) {
 	#ifdef _DFX_GAMMA_
@@ -302,13 +300,11 @@ pixel_out_t ps(vtx_out_t vtx) {
 		#endif
 		
 		// specular reflection variables
-		#ifdef _DFX_DIFFUSE_
-			#ifdef _DFX_SPECULAR_
-				float specPower = 1 + fPower * vtx.normal.w;
-				float3 viewDir = normalize(vtx.wpos - vecViewPos.xyz);
-				float3 refl;
-				float3 specular = 0;
-			#endif
+		#ifdef _DFX_SPECULAR_
+			float specPower = 1 + fPower * vtx.normal.w;
+			float3 viewDir = normalize(vtx.wpos - vecViewPos.xyz);
+			float3 refl;
+			float3 specular = 0;
 		#endif
 		
 		// apply normalmap
@@ -328,26 +324,21 @@ pixel_out_t ps(vtx_out_t vtx) {
 			vtx.normal.xyz = normalize(mul(normalmap.xyz - 0.5, trafo));
 			vtx.normal.w = normalmap.a;
 		#endif
-	#endif
-	
-	
-	// sun light
-	#ifdef _DFX_SUN_LIGHT_
-		//	sun diffuse
-		#ifdef _DFX_DIFFUSE_
-			diffuse += diffuse * saturate(-dot(vecSunDir.xyz, vtx.normal.xyz)) - diffuse;
+		
+		// sun light
+		#ifdef _DFX_SUN_LIGHT_
+			diffuse += vecSunColor.rgb * saturate(-dot(vecSunDir.xyz, vtx.normal.xyz));
+			diffuse *= 0.5f;
 			
 			//	sun specular
 			#ifdef _DFX_SPECULAR_
 				refl = reflect(vecSunDir.xyz, vtx.normal.xyz);
-				specular += diffuse * pow(saturate(-dot(refl, viewDir)), specPower);
+				specular += vecSunColor.rgb * pow(saturate(-dot(refl, viewDir)), specPower);
 			#endif
 		#endif
-	#endif
-	
-	// multiple dynamic lights
-	#ifdef _DFX_DYN_LIGHTS_
-		#ifdef _DFX_DIFFUSE_
+		
+		// multiple dynamic lights
+		#ifdef _DFX_DYN_LIGHTS_
 			float light = 0;
 			float lastLight = iLights;
 			#ifdef _DFX_SUN_LIGHT_
@@ -393,6 +384,7 @@ pixel_out_t ps(vtx_out_t vtx) {
 			}
 		#endif
 	#endif
+	
 	
 	// determine our output color
 	pixel_out_t pixel;

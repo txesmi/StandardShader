@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------
 // STARTHEADER
 //
-// ver: 0.0006
+// ver: 0.0007
 // engineReq: 7.82
-// date: 200228
+// date: 200403
 //
 // title: Default materials overwrite
 // help: Overwrite default materials by a set of pixel side shaded materials
@@ -137,7 +137,7 @@
 		
 		//entry_drop: Select layer
 		//id:49
-		//cntl: drop_list AMB_COLOR AMB_PRV DIF_COLOR SPEC_COLOR SPEC_TERM WORLD_NORMALS TAN_NORMALS
+		//cntl: drop_list AMB_COLOR AMB_PRV DIF_COLOR SPEC_COLOR SPEC_TERM WORLD_NORMALS TAN_NORMALS LIGHTMAP
 		float debug_layer = WORLD_NORMALS;
 		
 	";
